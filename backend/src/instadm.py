@@ -455,10 +455,16 @@ class InstaDM:
             self.client.login(self.username, self.password)
             db.save_session(self.username, self.client.get_settings())
 
-    def send_dm(self, userdm, messageText):
+    def send_dm(self, userdm, messageText, engagement_settings=None):
         # Always use API for DM sending (fast and reliable)
         # Browser is only used for initial login and session creation
-        return self._send_dm_api(userdm, messageText)
+        result = self._send_dm_api(userdm, messageText)
+        
+        # If DM was successful and auto_engage is enabled, perform engagement actions
+        if result[0] and engagement_settings and engagement_settings.get('auto_engage', False):
+            self._auto_engage_user(userdm, engagement_settings)
+        
+        return result
     
     def _send_dm_api(self, userdm, messageText):
         """Send DM via API (instagrapi) - invisible method with multiple fallback strategies"""
@@ -654,6 +660,238 @@ class InstaDM:
             logging.error(f"Error in check_and_reply_dms: {e}")
             return False, str(e)
     
+    def like_post(self, post_url_or_code):
+        """Like a post by URL or media code"""
+        try:
+            # Extract media code from URL if provided
+            if "instagram.com" in post_url_or_code:
+                # Extract code from URL patterns like /p/CODE/ or /reel/CODE/
+                match = re.search(r'/(p|reel)/([A-Za-z0-9_-]+)/', post_url_or_code)
+                if match:
+                    media_code = match.group(2)
+                else:
+                    raise ValueError("Invalid Instagram post URL")
+            else:
+                media_code = post_url_or_code
+            
+            # Get media ID from code
+            media_id = self.client.media_pk_from_code(media_code)
+            
+            # Like the post
+            result = self.client.media_like(media_id)
+            
+            if result:
+                logging.info(f"{color.GREEN}✓ Successfully liked post: {media_code}{color.RESET_ALL}")
+                db.track_engagement(self.username, "like", media_code, "success")
+                return True, None
+            else:
+                raise Exception("Like operation returned False")
+                
+        except Exception as e:
+            error_msg = str(e)
+            logging.error(f"{color.RED}✗ Failed to like post {post_url_or_code}: {error_msg}{color.RESET_ALL}")
+            db.track_engagement(self.username, "like", post_url_or_code, "failed", error_msg)
+            return False, error_msg
+    
+    def comment_post(self, post_url_or_code, comment_text):
+        """Comment on a post by URL or media code"""
+        try:
+            # Extract media code from URL if provided
+            if "instagram.com" in post_url_or_code:
+                match = re.search(r'/(p|reel)/([A-Za-z0-9_-]+)/', post_url_or_code)
+                if match:
+                    media_code = match.group(2)
+                else:
+                    raise ValueError("Invalid Instagram post URL")
+            else:
+                media_code = post_url_or_code
+            
+            # Get media ID from code
+            media_id = self.client.media_pk_from_code(media_code)
+            
+            # Add the comment
+            comment = self.client.media_comment(media_id, comment_text)
+            
+            if comment:
+                logging.info(f"{color.GREEN}✓ Successfully commented on post {media_code}: {comment_text}{color.RESET_ALL}")
+                db.track_engagement(self.username, "comment", media_code, "success", comment_text)
+                return True, None
+            else:
+                raise Exception("Comment operation returned None")
+                
+        except Exception as e:
+            error_msg = str(e)
+            logging.error(f"{color.RED}✗ Failed to comment on post {post_url_or_code}: {error_msg}{color.RESET_ALL}")
+            db.track_engagement(self.username, "comment", post_url_or_code, "failed", error_msg)
+            return False, error_msg
+    
+    def watch_story(self, username_or_url):
+        """Watch a user's story by username or story URL"""
+        try:
+            # Extract username from URL if provided
+            if "instagram.com" in username_or_url:
+                # Handle story URLs like /stories/username/
+                match = re.search(r'/stories/([A-Za-z0-9_.]+)/', username_or_url)
+                if match:
+                    target_username = match.group(1)
+                else:
+                    # Try to extract from profile URL
+                    match = re.search(r'instagram.com/([A-Za-z0-9_.]+)', username_or_url)
+                    if match:
+                        target_username = match.group(1).rstrip('/')
+                    else:
+                        raise ValueError("Invalid Instagram URL")
+            else:
+                target_username = username_or_url
+            
+            # Get user ID
+            user_id = self.client.user_id_from_username(target_username)
+            
+            # Get user's stories
+            stories = self.client.user_stories(user_id)
+            
+            if not stories:
+                logging.info(f"{color.YELLOW}No active stories found for {target_username}{color.RESET_ALL}")
+                return False, "No active stories"
+            
+            # Watch each story
+            watched_count = 0
+            for story in stories:
+                try:
+                    # Mark story as seen
+                    self.client.story_seen([story.id])
+                    watched_count += 1
+                    logging.info(f"{color.GREEN}✓ Watched story {watched_count}/{len(stories)} from {target_username}{color.RESET_ALL}")
+                    time.sleep(random.uniform(2, 5))  # Simulate watching time
+                except Exception as story_error:
+                    logging.warning(f"Failed to watch story {story.id}: {story_error}")
+            
+            if watched_count > 0:
+                logging.info(f"{color.GREEN}✓ Successfully watched {watched_count} stories from {target_username}{color.RESET_ALL}")
+                db.track_engagement(self.username, "story_view", target_username, "success", f"Watched {watched_count} stories")
+                return True, f"Watched {watched_count} stories"
+            else:
+                raise Exception("Failed to watch any stories")
+                
+        except Exception as e:
+            error_msg = str(e)
+            logging.error(f"{color.RED}✗ Failed to watch stories from {username_or_url}: {error_msg}{color.RESET_ALL}")
+            db.track_engagement(self.username, "story_view", username_or_url, "failed", error_msg)
+            return False, error_msg
+    
+    def follow_user(self, username_or_url):
+        """Follow a user by username or profile URL"""
+        try:
+            # Extract username from URL if provided
+            if "instagram.com" in username_or_url:
+                match = re.search(r'instagram.com/([A-Za-z0-9_.]+)', username_or_url)
+                if match:
+                    target_username = match.group(1).rstrip('/')
+                else:
+                    raise ValueError("Invalid Instagram profile URL")
+            else:
+                target_username = username_or_url
+            
+            # Get user ID
+            user_id = self.client.user_id_from_username(target_username)
+            
+            # Follow the user
+            result = self.client.user_follow(user_id)
+            
+            if result:
+                logging.info(f"{color.GREEN}✓ Successfully followed {target_username}{color.RESET_ALL}")
+                db.track_engagement(self.username, "follow", target_username, "success")
+                return True, None
+            else:
+                raise Exception("Follow operation returned False")
+                
+        except Exception as e:
+            error_msg = str(e)
+            logging.error(f"{color.RED}✗ Failed to follow {username_or_url}: {error_msg}{color.RESET_ALL}")
+            db.track_engagement(self.username, "follow", username_or_url, "failed", error_msg)
+            return False, error_msg
+    
+    def get_engagement_stats(self):
+        """Get engagement statistics for this account"""
+        try:
+            stats = db.get_engagement_stats(self.username)
+            return stats
+        except Exception as e:
+            logging.error(f"Failed to get engagement stats: {e}")
+            return None
+    
+    def _auto_engage_user(self, target_username, settings):
+        """Automatically engage with user after sending DM based on settings"""
+        try:
+            logging.info(f"{color.BLUE}Starting auto-engagement for {target_username}{color.RESET_ALL}")
+            
+            # Get user ID
+            user_id = self.client.user_id_from_username(target_username)
+            
+            # 1. Watch their stories (if enabled)
+            if settings.get('auto_story', False):
+                try:
+                    stories = self.client.user_stories(user_id)
+                    if stories:
+                        for story in stories[:3]:  # Watch up to 3 stories
+                            self.client.story_seen([story.id])
+                            time.sleep(random.uniform(2, 4))
+                        logging.info(f"{color.GREEN}✓ Watched {len(stories[:3])} stories from {target_username}{color.RESET_ALL}")
+                        db.track_engagement(self.username, "story_view", target_username, "success", f"Auto-engaged after DM")
+                except Exception as e:
+                    logging.warning(f"Could not watch stories for {target_username}: {e}")
+            
+            # 2. Like their recent posts (if enabled)
+            if settings.get('auto_like', False):
+                try:
+                    # Get user's recent posts
+                    medias = self.client.user_medias(user_id, amount=3)  # Get last 3 posts
+                    liked_count = 0
+                    
+                    for media in medias:
+                        try:
+                            # Like the post
+                            self.client.media_like(media.id)
+                            liked_count += 1
+                            logging.info(f"{color.GREEN}✓ Liked post from {target_username}{color.RESET_ALL}")
+                            db.track_engagement(self.username, "like", str(media.code), "success", "Auto-engaged after DM")
+                            time.sleep(random.uniform(3, 6))  # Wait between likes
+                        except Exception as e:
+                            logging.warning(f"Could not like post {media.code}: {e}")
+                    
+                    if liked_count > 0:
+                        logging.info(f"{color.GREEN}✓ Liked {liked_count} posts from {target_username}{color.RESET_ALL}")
+                except Exception as e:
+                    logging.warning(f"Could not like posts for {target_username}: {e}")
+            
+            # 3. Follow the user (if enabled)
+            if settings.get('auto_follow', False):
+                try:
+                    self.client.user_follow(user_id)
+                    logging.info(f"{color.GREEN}✓ Followed {target_username}{color.RESET_ALL}")
+                    db.track_engagement(self.username, "follow", target_username, "success", "Auto-engaged after DM")
+                    time.sleep(random.uniform(2, 4))
+                except Exception as e:
+                    logging.warning(f"Could not follow {target_username}: {e}")
+            
+            # 4. Comment on a post (if enabled)
+            if settings.get('auto_comment', False):
+                try:
+                    medias = self.client.user_medias(user_id, amount=1)
+                    if medias:
+                        comments = ["Great post! 🔥", "Love this! 💯", "Amazing content! 👏", "This is awesome! 🙌", "So cool! 😍", "Nice! 👍", "Wow! 🤩", "Beautiful! ❤️"]
+                        comment_text = random.choice(comments)
+                        self.client.media_comment(medias[0].id, comment_text)
+                        logging.info(f"{color.GREEN}✓ Commented on post from {target_username}: {comment_text}{color.RESET_ALL}")
+                        db.track_engagement(self.username, "comment", str(medias[0].code), "success", comment_text)
+                except Exception as e:
+                    logging.warning(f"Could not comment on post for {target_username}: {e}")
+            
+            logging.info(f"{color.BLUE}Completed auto-engagement for {target_username}{color.RESET_ALL}")
+            
+        except Exception as e:
+            logging.error(f"Error in auto-engagement for {target_username}: {e}")
+
     def logout(self):
         """Clean up resources and logout"""
         try:

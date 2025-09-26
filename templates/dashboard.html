@@ -220,6 +220,40 @@
                                 🌐 Hybrid Mode (Browser login → API DM sending)
                             </label>
                         </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="auto-engage" class="mr-2" checked>
+                                <label for="auto-engage" class="text-sm font-medium text-gray-700">
+                                    🎯 Enable Auto-Engagement After DM
+                                </label>
+                            </div>
+                            <div class="ml-6 space-y-2" id="engagement-options">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="auto-like" class="mr-2" checked>
+                                    <label for="auto-like" class="text-sm text-gray-600">
+                                        👍 Like Posts (up to 3 recent posts)
+                                    </label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="auto-story" class="mr-2" checked>
+                                    <label for="auto-story" class="text-sm text-gray-600">
+                                        👁️ Watch Stories (up to 3 stories)
+                                    </label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="auto-comment" class="mr-2">
+                                    <label for="auto-comment" class="text-sm text-gray-600">
+                                        💬 Comment on Post (random positive comment)
+                                    </label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="auto-follow" class="mr-2">
+                                    <label for="auto-follow" class="text-sm text-gray-600">
+                                        ➕ Follow User
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                         <button id="save-settings-btn"
                             class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-semibold transition-colors">
                             <i class="fas fa-save mr-2"></i>Save Settings
@@ -287,6 +321,88 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Engagement Features -->
+                <div class="dashboard-card p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-heart mr-2 text-red-500"></i>
+                        Engagement Features
+                    </h2>
+                    <div class="space-y-4">
+                        <!-- Like Post -->
+                        <div class="border-b pb-4">
+                            <h3 class="font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-thumbs-up mr-2 text-blue-500"></i>Like Post
+                            </h3>
+                            <input type="text" id="like-post-url"
+                                class="w-full p-2 border border-gray-300 rounded-lg mb-2"
+                                placeholder="Instagram post URL or code (e.g., CvK2LQrNTRG)">
+                            <select id="like-account-select" class="w-full p-2 border border-gray-300 rounded-lg mb-2">
+                                <option value="">Select account</option>
+                            </select>
+                            <button id="like-post-btn"
+                                class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-thumbs-up mr-2"></i>Like Post
+                            </button>
+                        </div>
+
+                        <!-- Comment on Post -->
+                        <div class="border-b pb-4">
+                            <h3 class="font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-comment-dots mr-2 text-green-500"></i>Comment on Post
+                            </h3>
+                            <input type="text" id="comment-post-url"
+                                class="w-full p-2 border border-gray-300 rounded-lg mb-2"
+                                placeholder="Instagram post URL or code">
+                            <textarea id="comment-text" rows="2"
+                                class="w-full p-2 border border-gray-300 rounded-lg mb-2"
+                                placeholder="Your comment..."></textarea>
+                            <select id="comment-account-select"
+                                class="w-full p-2 border border-gray-300 rounded-lg mb-2">
+                                <option value="">Select account</option>
+                            </select>
+                            <button id="comment-post-btn"
+                                class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-comment-dots mr-2"></i>Post Comment
+                            </button>
+                        </div>
+
+                        <!-- Watch Story -->
+                        <div class="border-b pb-4">
+                            <h3 class="font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-eye mr-2 text-purple-500"></i>Watch Story
+                            </h3>
+                            <input type="text" id="story-username"
+                                class="w-full p-2 border border-gray-300 rounded-lg mb-2"
+                                placeholder="Username or story URL">
+                            <select id="story-account-select" class="w-full p-2 border border-gray-300 rounded-lg mb-2">
+                                <option value="">Select account</option>
+                            </select>
+                            <button id="watch-story-btn"
+                                class="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-eye mr-2"></i>Watch Story
+                            </button>
+                        </div>
+
+                        <!-- Follow User -->
+                        <div>
+                            <h3 class="font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-user-plus mr-2 text-orange-500"></i>Follow User
+                            </h3>
+                            <input type="text" id="follow-username"
+                                class="w-full p-2 border border-gray-300 rounded-lg mb-2"
+                                placeholder="Username or profile URL">
+                            <select id="follow-account-select"
+                                class="w-full p-2 border border-gray-300 rounded-lg mb-2">
+                                <option value="">Select account</option>
+                            </select>
+                            <button id="follow-user-btn"
+                                class="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-user-plus mr-2"></i>Follow User
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Column: Analytics & Logs -->
@@ -344,6 +460,52 @@
                         </div>
                         <div class="progress-bar h-3">
                             <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Engagement Statistics -->
+                <div class="dashboard-card p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-heart mr-2 text-red-500"></i>
+                        Engagement Statistics
+                    </h2>
+                    <div class="stats-grid" id="engagement-stats-container">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-thumbs-up text-blue-500 text-2xl mr-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Likes Today</p>
+                                    <p class="text-2xl font-bold text-blue-600" id="likes-count">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-comment text-green-500 text-2xl mr-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Comments Today</p>
+                                    <p class="text-2xl font-bold text-green-600" id="comments-count">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-eye text-purple-500 text-2xl mr-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Stories Viewed</p>
+                                    <p class="text-2xl font-bold text-purple-600" id="stories-count">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-orange-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-user-plus text-orange-500 text-2xl mr-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Follows Today</p>
+                                    <p class="text-2xl font-bold text-orange-600" id="follows-count">0</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -461,6 +623,7 @@
             loadSettings();
             updateStats();
             startStatusPolling();
+            setupEngagementFeatures();
         });
 
         // Load accounts from backend
@@ -506,6 +669,9 @@
                 `;
                 container.appendChild(accountCard);
             });
+
+            // Update engagement account selects
+            updateEngagementAccountSelects();
         }
 
         // Render account status
@@ -547,7 +713,12 @@
                 document.getElementById('dms-per-account').value = data.dms_per_account || 25;
                 document.getElementById('delay-between-dms').value = data.delay_between_dms || 20;
                 document.getElementById('delay-between-accounts').value = data.delay_between_accounts || 2;
-                document.getElementById('use-browser-mode').checked = data.use_browser_mode !== false; // Default to true
+                document.getElementById('use-browser-mode').checked = data.use_browser_mode !== false;
+                document.getElementById('auto-engage').checked = data.auto_engage !== false;
+                document.getElementById('auto-like').checked = data.auto_like !== false;
+                document.getElementById('auto-story').checked = data.auto_story !== false;
+                document.getElementById('auto-comment').checked = data.auto_comment === true;
+                document.getElementById('auto-follow').checked = data.auto_follow === true; // Default to true
                 document.getElementById('message-template').value = data.message || 'hey how are you';
             } catch (error) {
                 addLog('Error loading settings: ' + error.message, 'error');
@@ -562,6 +733,11 @@
                 delay_between_dms: parseInt(document.getElementById('delay-between-dms').value),
                 delay_between_accounts: parseInt(document.getElementById('delay-between-accounts').value),
                 use_browser_mode: document.getElementById('use-browser-mode').checked,
+                auto_engage: document.getElementById('auto-engage').checked,
+                auto_like: document.getElementById('auto-like').checked,
+                auto_story: document.getElementById('auto-story').checked,
+                auto_comment: document.getElementById('auto-comment').checked,
+                auto_follow: document.getElementById('auto-follow').checked,
                 message: document.getElementById('message-template').value
             };
 
@@ -1004,6 +1180,204 @@
 
         // Initialize enhanced polling
         startAnalyticsPolling();
+
+        // Engagement Features Functions
+        function setupEngagementFeatures() {
+            // Populate account selects
+            updateEngagementAccountSelects();
+
+            // Load initial engagement stats
+            updateEngagementStats();
+
+            // Toggle engagement options visibility
+            const autoEngageCheckbox = document.getElementById('auto-engage');
+            const engagementOptions = document.getElementById('engagement-options');
+
+            autoEngageCheckbox.addEventListener('change', function () {
+                if (this.checked) {
+                    engagementOptions.style.display = 'block';
+                } else {
+                    engagementOptions.style.display = 'none';
+                }
+            });
+
+            // Set initial state
+            if (!autoEngageCheckbox.checked) {
+                engagementOptions.style.display = 'none';
+            }
+
+            // Like Post
+            document.getElementById('like-post-btn').addEventListener('click', async () => {
+                const postUrl = document.getElementById('like-post-url').value;
+                const username = document.getElementById('like-account-select').value;
+
+                if (!postUrl || !username) {
+                    addLog('Please enter post URL and select an account', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/engagement/like', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, post_url: postUrl })
+                    });
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        addLog(`${username} liked post: ${postUrl}`, 'success');
+                        document.getElementById('like-post-url').value = '';
+                    } else {
+                        addLog(`Failed to like post: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    addLog(`Error liking post: ${error.message}`, 'error');
+                }
+            });
+
+            // Comment on Post
+            document.getElementById('comment-post-btn').addEventListener('click', async () => {
+                const postUrl = document.getElementById('comment-post-url').value;
+                const commentText = document.getElementById('comment-text').value;
+                const username = document.getElementById('comment-account-select').value;
+
+                if (!postUrl || !commentText || !username) {
+                    addLog('Please fill all fields', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/engagement/comment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, post_url: postUrl, comment_text: commentText })
+                    });
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        addLog(`${username} commented on post: ${postUrl}`, 'success');
+                        document.getElementById('comment-post-url').value = '';
+                        document.getElementById('comment-text').value = '';
+                    } else {
+                        addLog(`Failed to comment: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    addLog(`Error commenting: ${error.message}`, 'error');
+                }
+            });
+
+            // Watch Story
+            document.getElementById('watch-story-btn').addEventListener('click', async () => {
+                const targetUsername = document.getElementById('story-username').value;
+                const username = document.getElementById('story-account-select').value;
+
+                if (!targetUsername || !username) {
+                    addLog('Please enter target username and select an account', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/engagement/story', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, target_username: targetUsername })
+                    });
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        addLog(`${username} watched stories from: ${targetUsername}`, 'success');
+                        document.getElementById('story-username').value = '';
+                    } else {
+                        addLog(`Failed to watch story: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    addLog(`Error watching story: ${error.message}`, 'error');
+                }
+            });
+
+            // Follow User
+            document.getElementById('follow-user-btn').addEventListener('click', async () => {
+                const targetUsername = document.getElementById('follow-username').value;
+                const username = document.getElementById('follow-account-select').value;
+
+                if (!targetUsername || !username) {
+                    addLog('Please enter target username and select an account', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/engagement/follow', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, target_username: targetUsername })
+                    });
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        addLog(`${username} followed: ${targetUsername}`, 'success');
+                        document.getElementById('follow-username').value = '';
+                    } else {
+                        addLog(`Failed to follow: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    addLog(`Error following: ${error.message}`, 'error');
+                }
+            });
+        }
+
+        function updateEngagementAccountSelects() {
+            const selects = [
+                'like-account-select',
+                'comment-account-select',
+                'story-account-select',
+                'follow-account-select'
+            ];
+
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">Select account</option>';
+
+                accounts.forEach(account => {
+                    const option = document.createElement('option');
+                    option.value = account.username;
+                    option.textContent = account.username;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // Update engagement statistics
+        async function updateEngagementStats() {
+            try {
+                const response = await fetch('/api/engagement/stats');
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    let totalLikes = 0, totalComments = 0, totalStories = 0, totalFollows = 0;
+
+                    // Aggregate stats from all accounts
+                    Object.values(result.stats).forEach(accountStats => {
+                        if (accountStats.daily_stats) {
+                            totalLikes += accountStats.daily_stats.likes || 0;
+                            totalComments += accountStats.daily_stats.comments || 0;
+                            totalStories += accountStats.daily_stats.stories_viewed || 0;
+                            totalFollows += accountStats.daily_stats.follows || 0;
+                        }
+                    });
+
+                    // Update UI
+                    document.getElementById('likes-count').textContent = totalLikes;
+                    document.getElementById('comments-count').textContent = totalComments;
+                    document.getElementById('stories-count').textContent = totalStories;
+                    document.getElementById('follows-count').textContent = totalFollows;
+                }
+            } catch (error) {
+                console.error('Error updating engagement stats:', error);
+            }
+        }
+
+        // Add engagement stats to polling
+        setInterval(updateEngagementStats, 10000); // Update every 10 seconds
     </script>
 </body>
 

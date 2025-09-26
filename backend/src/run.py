@@ -98,6 +98,11 @@ def load_dm_settings():
     defaults = {
         'total_dms': 100,
         'dms_per_account': 25,
+        'auto_engage': True,  # Enable auto-engagement by default
+        'auto_like': True,    # Auto like posts
+        'auto_story': True,   # Auto watch stories
+        'auto_comment': False, # Auto comment (disabled by default)
+        'auto_follow': False,  # Auto follow (disabled by default)
         'delay_between_dms': 20,
         'delay_between_accounts': 2,
         'use_browser_mode': True  # New setting for browser visibility
@@ -161,7 +166,16 @@ def dm_bot_worker():
                     firstname = firstnames.get(username, "Friend")
                     personalized_message = message_text.replace("<FIRSTNAME>", firstname)
                     add_log(f"Sending to {username} (firstname: {firstname})")
-                    success, error = insta.send_dm(userdm=username, messageText=personalized_message)
+                    
+                    # Pass engagement settings
+                    engagement_settings = {
+                        'auto_engage': settings.get('auto_engage', True),
+                        'auto_like': settings.get('auto_like', True),
+                        'auto_story': settings.get('auto_story', True),
+                        'auto_comment': settings.get('auto_comment', False),
+                        'auto_follow': settings.get('auto_follow', False)
+                    }
+                    success, error = insta.send_dm(userdm=username, messageText=personalized_message, engagement_settings=engagement_settings)
                     if success:
                         sent_usernames.add(username)
                         messages_sent += 1
@@ -465,6 +479,179 @@ def upload_usernames():
     except Exception as e:
         add_log(f"Error uploading usernames: {e}")
         return jsonify({'success': False, 'message': str(e)})
+
+# Engagement Feature API Endpoints
+@app.route('/api/engagement/like', methods=['POST'])
+def like_post():
+    """Like a post"""
+    data = request.get_json()
+    username = data.get('username')
+    post_url = data.get('post_url')
+    
+    if not username or not post_url:
+        return jsonify({'status': 'error', 'message': 'Username and post URL required'}), 400
+    
+    try:
+        # Find the account
+        account = None
+        for acc in accounts:
+            if acc['username'] == username:
+                account = acc
+                break
+        
+        if not account:
+            return jsonify({'status': 'error', 'message': 'Account not found'}), 404
+        
+        # Create InstaDM instance
+        bot = InstaDM(account['username'], account['password'], use_browser=False)
+        
+        # Like the post
+        success, error = bot.like_post(post_url)
+        
+        if success:
+            add_log(f"{username} liked post: {post_url}")
+            return jsonify({'status': 'success', 'message': 'Post liked successfully'})
+        else:
+            add_log(f"Failed to like post for {username}: {error}")
+            return jsonify({'status': 'error', 'message': error}), 500
+            
+    except Exception as e:
+        add_log(f"Error in like endpoint: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/engagement/comment', methods=['POST'])
+def comment_post():
+    """Comment on a post"""
+    data = request.get_json()
+    username = data.get('username')
+    post_url = data.get('post_url')
+    comment_text = data.get('comment_text')
+    
+    if not username or not post_url or not comment_text:
+        return jsonify({'status': 'error', 'message': 'Username, post URL, and comment required'}), 400
+    
+    try:
+        # Find the account
+        account = None
+        for acc in accounts:
+            if acc['username'] == username:
+                account = acc
+                break
+        
+        if not account:
+            return jsonify({'status': 'error', 'message': 'Account not found'}), 404
+        
+        # Create InstaDM instance
+        bot = InstaDM(account['username'], account['password'], use_browser=False)
+        
+        # Comment on the post
+        success, error = bot.comment_post(post_url, comment_text)
+        
+        if success:
+            add_log(f"{username} commented on post: {post_url}")
+            return jsonify({'status': 'success', 'message': 'Comment posted successfully'})
+        else:
+            add_log(f"Failed to comment for {username}: {error}")
+            return jsonify({'status': 'error', 'message': error}), 500
+            
+    except Exception as e:
+        add_log(f"Error in comment endpoint: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/engagement/story', methods=['POST'])
+def watch_story():
+    """Watch a user's story"""
+    data = request.get_json()
+    username = data.get('username')
+    target_username = data.get('target_username')
+    
+    if not username or not target_username:
+        return jsonify({'status': 'error', 'message': 'Username and target username required'}), 400
+    
+    try:
+        # Find the account
+        account = None
+        for acc in accounts:
+            if acc['username'] == username:
+                account = acc
+                break
+        
+        if not account:
+            return jsonify({'status': 'error', 'message': 'Account not found'}), 404
+        
+        # Create InstaDM instance
+        bot = InstaDM(account['username'], account['password'], use_browser=False)
+        
+        # Watch the story
+        success, message = bot.watch_story(target_username)
+        
+        if success:
+            add_log(f"{username} watched stories from: {target_username}")
+            return jsonify({'status': 'success', 'message': message})
+        else:
+            add_log(f"Failed to watch stories for {username}: {message}")
+            return jsonify({'status': 'error', 'message': message}), 500
+            
+    except Exception as e:
+        add_log(f"Error in story endpoint: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/engagement/follow', methods=['POST'])
+def follow_user():
+    """Follow a user"""
+    data = request.get_json()
+    username = data.get('username')
+    target_username = data.get('target_username')
+    
+    if not username or not target_username:
+        return jsonify({'status': 'error', 'message': 'Username and target username required'}), 400
+    
+    try:
+        # Find the account
+        account = None
+        for acc in accounts:
+            if acc['username'] == username:
+                account = acc
+                break
+        
+        if not account:
+            return jsonify({'status': 'error', 'message': 'Account not found'}), 404
+        
+        # Create InstaDM instance
+        bot = InstaDM(account['username'], account['password'], use_browser=False)
+        
+        # Follow the user
+        success, error = bot.follow_user(target_username)
+        
+        if success:
+            add_log(f"{username} followed: {target_username}")
+            return jsonify({'status': 'success', 'message': 'User followed successfully'})
+        else:
+            add_log(f"Failed to follow for {username}: {error}")
+            return jsonify({'status': 'error', 'message': error}), 500
+            
+    except Exception as e:
+        add_log(f"Error in follow endpoint: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/engagement/stats', methods=['GET'])
+def get_engagement_stats():
+    """Get engagement statistics for all accounts"""
+    try:
+        stats = {}
+        for account in accounts:
+            account_stats = db.get_engagement_stats(account['username'])
+            recent_activities = db.get_recent_engagements(account['username'], limit=10)
+            stats[account['username']] = {
+                'daily_stats': account_stats,
+                'recent_activities': recent_activities
+            }
+        
+        return jsonify({'status': 'success', 'stats': stats})
+        
+    except Exception as e:
+        add_log(f"Error getting engagement stats: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)

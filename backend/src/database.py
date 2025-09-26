@@ -79,6 +79,34 @@ class DatabaseManager:
                 )
             ''')
             
+            # Create engagement_tracking table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS engagement_tracking (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    account_username TEXT NOT NULL,
+                    action_type TEXT NOT NULL,
+                    target_url TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    details TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # Create engagement_stats table  
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS engagement_stats (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL,
+                    date DATE NOT NULL,
+                    likes_count INTEGER DEFAULT 0,
+                    comments_count INTEGER DEFAULT 0,
+                    stories_viewed INTEGER DEFAULT 0,
+                    follows_count INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(username, date)
+                )
+            ''')
+            
             conn.commit()
     
     def save_session(self, username: str, session_data: Dict) -> bool:
@@ -403,6 +431,126 @@ class DatabaseManager:
                 'unprocessed_usernames': 0,
                 'active_sessions': 0
             }
+    
+    def track_engagement(self, account_username: str, action_type: str, target_url: str, 
+                        status: str, details: str = None) -> bool:
+        """Track an engagement action (like, comment, story view, follow)"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Insert engagement tracking record
+                cursor.execute('''
+                    INSERT INTO engagement_tracking 
+                    (account_username, action_type, target_url, status, details)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (account_username, action_type, target_url, status, details))
+                
+                # Update engagement stats if successful
+                if status == "success":
+                    today = datetime.date.today().isoformat()
+                    
+                    # Determine which column to update based on action type
+                    column_map = {
+                        'like': 'likes_count',
+                        'comment': 'comments_count',
+                        'story_view': 'stories_viewed',
+                        'follow': 'follows_count'
+                    }
+                    
+                    column = column_map.get(action_type)
+                    if column:
+                        # Get current value
+                        cursor.execute(f'''
+                            SELECT {column} FROM engagement_stats 
+                            WHERE username = ? AND date = ?
+                        ''', (account_username, today))
+                        
+                        result = cursor.fetchone()
+                        current_value = result[0] if result else 0
+                        
+                        # Insert or update
+                        cursor.execute(f'''
+                            INSERT OR REPLACE INTO engagement_stats 
+                            (username, date, {column})
+                            VALUES (?, ?, ?)
+                        ''', (account_username, today, current_value + 1))
+                
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"Error tracking engagement: {e}")
+            return False
+    
+    def get_engagement_stats(self, username: str, date: str = None) -> Dict:
+        """Get engagement statistics for a user"""
+        if date is None:
+            date = datetime.date.today().isoformat()
+        
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT likes_count, comments_count, stories_viewed, follows_count
+                    FROM engagement_stats 
+                    WHERE username = ? AND date = ?
+                ''', (username, date))
+                
+                result = cursor.fetchone()
+                if result:
+                    return {
+                        'username': username,
+                        'date': date,
+                        'likes': result[0] or 0,
+                        'comments': result[1] or 0,
+                        'stories_viewed': result[2] or 0,
+                        'follows': result[3] or 0
+                    }
+                return {
+                    'username': username,
+                    'date': date,
+                    'likes': 0,
+                    'comments': 0,
+                    'stories_viewed': 0,
+                    'follows': 0
+                }
+        except Exception as e:
+            print(f"Error getting engagement stats: {e}")
+            return {
+                'username': username,
+                'date': date,
+                'likes': 0,
+                'comments': 0,
+                'stories_viewed': 0,
+                'follows': 0
+            }
+    
+    def get_recent_engagements(self, username: str, limit: int = 50) -> List[Dict]:
+        """Get recent engagement activities for a user"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT action_type, target_url, status, details, created_at
+                    FROM engagement_tracking 
+                    WHERE account_username = ?
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                ''', (username, limit))
+                
+                engagements = []
+                for row in cursor.fetchall():
+                    engagements.append({
+                        'action_type': row[0],
+                        'target_url': row[1],
+                        'status': row[2],
+                        'details': row[3],
+                        'created_at': row[4]
+                    })
+                return engagements
+        except Exception as e:
+            print(f"Error getting recent engagements: {e}")
+            return []
 
 # Global database instance
 db = DatabaseManager() 
