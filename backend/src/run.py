@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request, render_template
+from flask_cors import CORS
 import json
 import random
 import time
@@ -10,6 +11,7 @@ from instadm import InstaDM, read_usernames, read_firstnames_json, read_accounts
 from database import DatabaseManager
 
 app = Flask(__name__, template_folder='../../templates')
+CORS(app)  # Enable CORS for all routes
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -230,6 +232,15 @@ def bot_status():
         "sent_count": len(sent_usernames)
     })
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Simple health check endpoint"""
+    return jsonify({
+        "status": "OK",
+        "message": "Server is running",
+        "timestamp": time.time()
+    })
+
 @app.route('/get-logs', methods=['GET'])
 def get_logs():
     return jsonify({"logs": current_logs})
@@ -238,13 +249,22 @@ def get_logs():
 def run_bot():
     global bot_running, bot_thread
     
+    # Add debugging information
+    add_log(f"POST request received to /run-bot")
+    add_log(f"Request method: {request.method}")
+    add_log(f"Request headers: {dict(request.headers)}")
+    add_log(f"Request data: {request.get_data()}")
+    
     if bot_running:
+        add_log("Bot is already running - returning 400")
         return jsonify({"status": "Bot is already running"}), 400
 
     if not accounts:
+        add_log("No accounts configured - returning 400")
         return jsonify({"status": "Error", "error": "No accounts configured"}), 400
         
     if not usernames:
+        add_log("No usernames to send DMs to - returning 400")
         return jsonify({"status": "Error", "error": "No usernames to send DMs to"}), 400
 
     bot_running = True
