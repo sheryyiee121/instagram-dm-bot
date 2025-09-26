@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Will You Marry Me?</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    canvas { display: block; }
+    #message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 2em;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 2s;
+    }
+  </style>
+</head>
+<body>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script>
+    // Set up the scene, camera, and renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Create a simple spaceship (using a cone for the body and a box for wings)
+    const spaceshipGroup = new THREE.Group();
+
+    // Spaceship body (cone)
+    const bodyGeometry = new THREE.ConeGeometry(0.5, 2, 32);
+    const bodyMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffcc }); // Cyan color
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.rotation.x = Math.PI / 2; // Orient it horizontally
+    spaceshipGroup.add(body);
+
+    // Wings (two small boxes)
+    const wingGeometry = new THREE.BoxGeometry(1, 0.1, 0.5);
+    const wingMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+    const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+    leftWing.position.set(-0.75, 0, 0);
+    const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+    rightWing.position.set(0.75, 0, 0);
+    spaceshipGroup.add(leftWing);
+    spaceshipGroup.add(rightWing);
+
+    scene.add(spaceshipGroup);
+
+    // Add some ambient stars (small spheres)
+    const stars = [];
+    for (let i = 0; i < 100; i++) {
+      const starGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+      const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const star = new THREE.Mesh(starGeometry, starMaterial);
+      star.position.set(
+        (Math.random() - 0.5) * 50,
+        (Math.random() - 0.5) * 50,
+        (Math.random() - 0.5) * 50
+      );
+      scene.add(star);
+      stars.push(star);
+    }
+
+    // Position the camera
+    camera.position.z = 5;
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Rotate and move the spaceship
+      spaceshipGroup.rotation.y += 0.01;
+      spaceshipGroup.rotation.z += 0.005;
+      spaceshipGroup.position.y = Math.sin(Date.now() * 0.001) * 0.5; // Gentle bobbing
+
+      // Make stars twinkle by slightly moving them
+      stars.forEach(star => {
+        star.position.z += Math.sin(Date.now() * 0.001 + star.position.x) * 0.01;
+        if (star.position.z > 50) star.position.z = -50;
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    // Start the animation
+    animate();
+
+    // Show the message after a delay
+    setTimeout(() => {
+      const message = document.getElementById('message');
+      message.style.opacity = 1;
+    }, 2000);
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

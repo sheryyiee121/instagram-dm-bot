@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram DM Bot Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-running {
+            background-color: #10b981;
+        }
+
+        .status-stopped {
+            background-color: #ef4444;
+        }
+
+        .status-paused {
+            background-color: #f59e0b;
+        }
+
+        .log-container {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .log-entry {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+
+        .log-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .log-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .log-error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .log-warning {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .progress-bar {
+            background: #e5e7eb;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .account-card {
+            border: 2px solid #e5e7eb;
+            transition: border-color 0.2s;
+        }
+
+        .account-card.active {
+            border-color: #3b82f6;
+        }
+
+        .account-card:hover {
+            border-color: #3b82f6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+
+<body class="p-4">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="dashboard-card p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">
+                        <i class="fab fa-instagram text-pink-500 mr-3"></i>
+                        Instagram DM Bot Dashboard
+                    </h1>
+                    <p class="text-gray-600 mt-2">Manage multiple accounts and automate your DM campaigns</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="flex items-center">
+                            <span class="status-indicator" id="bot-status-indicator"></span>
+                            <span class="font-semibold" id="bot-status-text">Stopped</span>
+                        </div>
+                        <p class="text-sm text-gray-500" id="bot-status-details">Ready to start</p>
+                    </div>
+                    <button id="start-bot-btn"
+                        class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                        <i class="fas fa-play mr-2"></i>Start Bot
+                    </button>
+                    <button id="stop-bot-btn"
+                        class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors hidden">
+                        <i class="fas fa-stop mr-2"></i>Stop Bot
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column: Accounts & Settings -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Account Management -->
+                <div class="dashboard-card p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-users mr-2 text-blue-500"></i>
+                        Account Management
+                    </h2>
+                    <div id="accounts-container" class="space-y-3">
+                        <!-- Accounts will be loaded here -->
+                    </div>
+                    <button id="add-account-btn"
+                        class="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Add Account
+                    </button>
+                </div>
+
+                <!-- DM Settings -->
+                <div class="dashboard-card p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-cog mr-2 text-green-500"></i>
+                        DM Settings
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Total DMs to Send</label>
+                            <input type="number" id="total-dms"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                value="100" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">DMs per Account</label>
+                            <input type="number" id="dms-per-account"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                value="25" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Delay between DMs
+                                (seconds)</label>
+                            <input type="number" id="delay-between-dms"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                value="20" min="5" max="60">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Delay between Accounts
+                                (minutes)</label>
+                            <input type="number" id="delay-between-accounts"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                value="2" min="1" max="10">
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="use-browser-mode" class="mr-2" checked>
+                            <label for="use-browser-mode" class="text-sm font-medium text-gray-700">
+                                🌐 Hybrid Mode (Browser login → API DM sending)
+                            </label>
+                        </div>
+                        <button id="save-settings-btn"
+                            class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                            <i class="fas fa-save mr-2"></i>Save Settings
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upload Usernames -->
+                <div class="dashboard-card p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-upload mr-2 text-blue-500"></i>
+                        Upload Usernames
+                    </h2>
+                    <input type="file" id="usernames-file" accept=".txt" class="mb-4">
+                    <div class="flex space-x-2">
+                        <button id="upload-usernames-btn"
+                            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                            <i class="fas fa-upload mr-2"></i>Upload Usernames
+                        </button>
+                        <button id="update-usernames-btn"
+                            class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                            <i class="fas fa-sync-alt mr-2"></i>Update Usernames
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Proxy Testing -->
+                <div class="dashboard-card p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-network-wired mr-2 text-orange-500"></i>
+                        Proxy Testing
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Proxy (ip:port)</label>
+                            <input type="text" id="proxy-test-input"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="192.168.1.1:8080">
+                        </div>
+                        <button id="test-proxy-btn"
+                            class="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                            <i class="fas fa-vial mr-2"></i>Test Proxy
+                        </button>
+                        <div id="proxy-test-result" class="hidden p-3 rounded-lg text-sm">
+                            <!-- Proxy test results will appear here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Template -->
+                <div class="dashboard-card p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-comment mr-2 text-purple-500"></i>
+                        Message Template
+                    </h2>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">DM Message</label>
+                        <textarea id="message-template" rows="4"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Enter your message here... Use <FIRSTNAME> for personalization">hey how are you</textarea>
+                        <p class="text-xs text-gray-500 mt-2">Use &lt;FIRSTNAME&gt; to personalize messages</p>
+                        <button id="update-message-btn"
+                            class="mt-3 w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                            <i class="fas fa-save mr-2"></i>Update Message
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Analytics & Logs -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Statistics -->
+                <div class="dashboard-card p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-chart-bar mr-2 text-indigo-500"></i>
+                        Campaign Statistics
+                    </h2>
+                    <div class="stats-grid">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-paper-plane text-blue-500 text-2xl mr-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Total Sent</p>
+                                    <p class="text-2xl font-bold text-blue-600" id="total-sent">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 text-2xl mr-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Successful</p>
+                                    <p class="text-2xl font-bold text-green-600" id="successful-sent">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-times-circle text-red-500 text-2xl mr-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Failed</p>
+                                    <p class="text-2xl font-bold text-red-600" id="failed-sent">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-clock text-purple-500 text-2xl mr-3"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Remaining</p>
+                                    <p class="text-2xl font-bold text-purple-600" id="remaining-dms">100</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mt-6">
+                        <div class="flex justify-between text-sm text-gray-600 mb-2">
+                            <span>Campaign Progress</span>
+                            <span id="progress-percentage">0%</span>
+                        </div>
+                        <div class="progress-bar h-3">
+                            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Status -->
+                <div class="dashboard-card p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-user-check mr-2 text-orange-500"></i>
+                        Account Status
+                    </h2>
+                    <div id="account-status-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Account status cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Live Logs -->
+                <div class="dashboard-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-terminal mr-2 text-gray-500"></i>
+                            Live Logs
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button id="clear-logs-btn"
+                                class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm">
+                                <i class="fas fa-trash mr-1"></i>Clear
+                            </button>
+                            <button id="export-logs-btn"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                <i class="fas fa-download mr-1"></i>Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="log-container" id="logs-container">
+                        <div class="log-entry log-info">
+                            <span class="text-xs text-gray-500">[System]</span> Dashboard loaded successfully
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Account Modal -->
+    <div id="add-account-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Add Instagram Account</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                    <input type="text" id="new-username"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="instagram_username">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="new-password"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="password">
+                </div>
+                <div class="flex space-x-3">
+                    <button id="save-account-btn"
+                        class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                        <i class="fas fa-save mr-2"></i>Save Account
+                    </button>
+                    <button id="cancel-add-account-btn"
+                        class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Proxy Modal -->
+    <div id="add-proxy-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Set Proxy for Account</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Proxy (http://ip:port)</label>
+                    <input type="text" id="proxy-input" class="w-full p-3 border border-gray-300 rounded-lg"
+                        placeholder="http://ip:port">
+                </div>
+                <div class="flex space-x-3">
+                    <button id="save-proxy-btn"
+                        class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                        <i class="fas fa-save mr-2"></i>Save Proxy
+                    </button>
+                    <button id="cancel-proxy-btn"
+                        class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-semibold transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let botRunning = false;
+        let accounts = [];
+        let logs = [];
+        let stats = {
+            totalSent: 0,
+            successful: 0,
+            failed: 0,
+            remaining: 100
+        };
+        let selectedAccountIndex = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function () {
+            loadAccounts();
+            loadSettings();
+            updateStats();
+            startStatusPolling();
+        });
+
+        // Load accounts from backend
+        async function loadAccounts() {
+            try {
+                const response = await fetch('/api/accounts');
+                const data = await response.json();
+                accounts = data.accounts || [];
+                renderAccounts();
+                renderAccountStatus();
+            } catch (error) {
+                addLog('Error loading accounts: ' + error.message, 'error');
+            }
+        }
+
+        // Render accounts list
+        function renderAccounts() {
+            const container = document.getElementById('accounts-container');
+            container.innerHTML = '';
+
+            accounts.forEach((account, index) => {
+                const accountCard = document.createElement('div');
+                accountCard.className = `account-card p-3 rounded-lg cursor-pointer ${account.active ? 'active' : ''}`;
+                accountCard.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold text-gray-800">${account.username}</p>
+                            <p class="text-sm text-gray-500">${account.status || 'Ready'}</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="status-indicator ${account.status === 'running' ? 'status-running' : 'status-stopped'}"></span>
+                            <button onclick="toggleAccount(${index})" class="text-sm ${account.active ? 'text-red-500' : 'text-green-500'}">
+                                ${account.active ? 'Disable' : 'Enable'}
+                            </button>
+                            <button onclick="removeAccount(${index})" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button onclick="openProxyModal(${index})" class="text-blue-500 hover:text-blue-700 ml-2">
+                                <i class="fas fa-network-wired"></i> Add Proxy
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(accountCard);
+            });
+        }
+
+        // Render account status
+        function renderAccountStatus() {
+            const container = document.getElementById('account-status-container');
+            container.innerHTML = '';
+
+            accounts.forEach(account => {
+                const statusCard = document.createElement('div');
+                statusCard.className = 'bg-gray-50 p-4 rounded-lg';
+                statusCard.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold text-gray-800">${account.username}</p>
+                            <p class="text-sm text-gray-500">${account.sent || 0} / ${account.limit || 25} DMs</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="status-indicator ${account.status === 'running' ? 'status-running' : account.status === 'paused' ? 'status-paused' : 'status-stopped'}"></span>
+                            <p class="text-sm text-gray-600">${account.status || 'Ready'}</p>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="progress-bar h-2">
+                            <div class="progress-fill" style="width: ${((account.sent || 0) / (account.limit || 25)) * 100}%"></div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(statusCard);
+            });
+        }
+
+        // Load settings
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const data = await response.json();
+
+                document.getElementById('total-dms').value = data.total_dms || 100;
+                document.getElementById('dms-per-account').value = data.dms_per_account || 25;
+                document.getElementById('delay-between-dms').value = data.delay_between_dms || 20;
+                document.getElementById('delay-between-accounts').value = data.delay_between_accounts || 2;
+                document.getElementById('use-browser-mode').checked = data.use_browser_mode !== false; // Default to true
+                document.getElementById('message-template').value = data.message || 'hey how are you';
+            } catch (error) {
+                addLog('Error loading settings: ' + error.message, 'error');
+            }
+        }
+
+        // Save settings
+        async function saveSettings() {
+            const settings = {
+                total_dms: parseInt(document.getElementById('total-dms').value),
+                dms_per_account: parseInt(document.getElementById('dms-per-account').value),
+                delay_between_dms: parseInt(document.getElementById('delay-between-dms').value),
+                delay_between_accounts: parseInt(document.getElementById('delay-between-accounts').value),
+                use_browser_mode: document.getElementById('use-browser-mode').checked,
+                message: document.getElementById('message-template').value
+            };
+
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                if (response.ok) {
+                    addLog('Settings saved successfully', 'success');
+                    stats.remaining = settings.total_dms;
+                    updateStats();
+                } else {
+                    addLog('Error saving settings', 'error');
+                }
+            } catch (error) {
+                addLog('Error saving settings: ' + error.message, 'error');
+            }
+        }
+
+        // Start/Stop bot
+        async function toggleBot() {
+            if (botRunning) {
+                await stopBot();
+            } else {
+                await startBot();
+            }
+        }
+
+        async function startBot() {
+            try {
+                const response = await fetch('/run-bot', { method: 'POST' });
+                if (response.ok) {
+                    botRunning = true;
+                    updateBotStatus();
+                    addLog('Bot started successfully', 'success');
+                } else {
+                    addLog('Error starting bot', 'error');
+                }
+            } catch (error) {
+                addLog('Error starting bot: ' + error.message, 'error');
+            }
+        }
+
+        async function stopBot() {
+            try {
+                const response = await fetch('/stop-bot', { method: 'POST' });
+                if (response.ok) {
+                    botRunning = false;
+                    updateBotStatus();
+                    addLog('Bot stopped', 'info');
+                } else {
+                    addLog('Error stopping bot', 'error');
+                }
+            } catch (error) {
+                addLog('Error stopping bot: ' + error.message, 'error');
+            }
+        }
+
+        // Update bot status UI
+        function updateBotStatus() {
+            const indicator = document.getElementById('bot-status-indicator');
+            const statusText = document.getElementById('bot-status-text');
+            const statusDetails = document.getElementById('bot-status-details');
+            const startBtn = document.getElementById('start-bot-btn');
+            const stopBtn = document.getElementById('stop-bot-btn');
+
+            if (botRunning) {
+                indicator.className = 'status-indicator status-running pulse';
+                statusText.textContent = 'Running';
+                statusDetails.textContent = 'Sending DMs...';
+                startBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+            } else {
+                indicator.className = 'status-indicator status-stopped';
+                statusText.textContent = 'Stopped';
+                statusDetails.textContent = 'Ready to start';
+                startBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+            }
+        }
+
+        // Add log entry
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `<span class="text-xs text-gray-500">[${timestamp}]</span> ${message}`;
+
+            const container = document.getElementById('logs-container');
+            container.appendChild(logEntry);
+            container.scrollTop = container.scrollHeight;
+
+            logs.push({ timestamp, message, type });
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('total-sent').textContent = stats.totalSent;
+            document.getElementById('successful-sent').textContent = stats.successful;
+            document.getElementById('failed-sent').textContent = stats.failed;
+            document.getElementById('remaining-dms').textContent = stats.remaining;
+
+            const progress = ((stats.totalSent) / (stats.totalSent + stats.remaining)) * 100;
+            document.getElementById('progress-percentage').textContent = Math.round(progress) + '%';
+            document.getElementById('progress-fill').style.width = progress + '%';
+        }
+
+        // Poll for status updates
+        function startStatusPolling() {
+            setInterval(async () => {
+                try {
+                    const response = await fetch('/bot-status');
+                    const data = await response.json();
+
+                    if (data.running !== botRunning) {
+                        botRunning = data.running;
+                        updateBotStatus();
+                    }
+
+                    // Update stats if available
+                    if (data.stats) {
+                        stats = { ...stats, ...data.stats };
+                        updateStats();
+                    }
+
+                    // Update accounts if available
+                    if (data.accounts) {
+                        accounts = data.accounts;
+                        renderAccountStatus();
+                    }
+
+                } catch (error) {
+                    console.error('Error polling status:', error);
+                }
+            }, 2000);
+        }
+
+        // Event listeners
+        document.getElementById('start-bot-btn').addEventListener('click', toggleBot);
+        document.getElementById('stop-bot-btn').addEventListener('click', toggleBot);
+        document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+        document.getElementById('add-account-btn').addEventListener('click', () => {
+            document.getElementById('add-account-modal').classList.remove('hidden');
+            document.getElementById('add-account-modal').classList.add('flex');
+        });
+        document.getElementById('cancel-add-account-btn').addEventListener('click', () => {
+            document.getElementById('add-account-modal').classList.add('hidden');
+            document.getElementById('add-account-modal').classList.remove('flex');
+        });
+        document.getElementById('clear-logs-btn').addEventListener('click', () => {
+            document.getElementById('logs-container').innerHTML = '';
+            logs = [];
+        });
+        document.getElementById('export-logs-btn').addEventListener('click', () => {
+            const logText = logs.map(log => `[${log.timestamp}] ${log.message}`).join('\n');
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bot-logs.txt';
+            a.click();
+        });
+        document.getElementById('update-message-btn').addEventListener('click', async () => {
+            const message = document.getElementById('message-template').value;
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                if (response.ok) {
+                    addLog('Message updated successfully', 'success');
+                } else {
+                    addLog('Error updating message', 'error');
+                }
+            } catch (error) {
+                addLog('Error updating message: ' + error.message, 'error');
+            }
+        });
+        document.getElementById('update-usernames-btn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('usernames-file');
+            if (!fileInput.files.length) {
+                alert('Please select a file.');
+                return;
+            }
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch('/api/upload_usernames', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('Usernames updated successfully!');
+                addLog('Usernames updated successfully', 'success');
+            } else {
+                alert('Update failed: ' + result.message);
+                addLog('Error updating usernames: ' + result.message, 'error');
+            }
+        });
+
+        // Account management functions
+        function toggleAccount(index) {
+            accounts[index].active = !accounts[index].active;
+            renderAccounts();
+            addLog(`Account ${accounts[index].username} ${accounts[index].active ? 'enabled' : 'disabled'}`, 'info');
+        }
+
+        async function removeAccount(index) {
+            const username = accounts[index].username;
+            if (confirm(`Remove account ${username}?`)) {
+                try {
+                    // Call the backend API to delete the account
+                    const response = await fetch(`/api/accounts/${username}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.status === 'success') {
+                        accounts.splice(index, 1);
+                        renderAccounts();
+                        renderAccountStatus();
+                        addLog(`Account ${username} removed from database`, 'success');
+                    } else {
+                        addLog(`Failed to remove account: ${result.message || 'Unknown error'}`, 'error');
+                    }
+                } catch (error) {
+                    addLog(`Error removing account: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // Save new account
+        document.getElementById('save-account-btn').addEventListener('click', async () => {
+            const username = document.getElementById('new-username').value;
+            const password = document.getElementById('new-password').value;
+
+            if (!username || !password) {
+                addLog('Please fill in both username and password', 'error');
+                return;
+            }
+
+            try {
+                // Call the backend API to save the account
+                const response = await fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    // Add to local array only if backend save was successful
+                    const newAccount = {
+                        username,
+                        password,
+                        active: true,
+                        status: 'ready',
+                        sent: 0,
+                        limit: parseInt(document.getElementById('dms-per-account').value)
+                    };
+
+                    accounts.push(newAccount);
+                    renderAccounts();
+                    renderAccountStatus();
+
+                    document.getElementById('new-username').value = '';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('add-account-modal').classList.add('hidden');
+                    document.getElementById('add-account-modal').classList.remove('flex');
+
+                    addLog(`Account ${username} added successfully to database`, 'success');
+                } else {
+                    addLog(`Failed to save account: ${result.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                addLog(`Error saving account: ${error.message}`, 'error');
+            }
+        });
+
+        function openProxyModal(index) {
+            selectedAccountIndex = index;
+            document.getElementById('add-proxy-modal').classList.remove('hidden');
+            document.getElementById('add-proxy-modal').classList.add('flex');
+            // Optionally pre-fill with existing proxy
+            document.getElementById('proxy-input').value = accounts[index].proxy || '';
+        }
+
+        document.getElementById('save-proxy-btn').addEventListener('click', async () => {
+            const proxy = document.getElementById('proxy-input').value;
+            if (selectedAccountIndex !== null) {
+                accounts[selectedAccountIndex].proxy = proxy;
+                // Send update to backend
+                await fetch('/api/accounts/proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: accounts[selectedAccountIndex].username,
+                        proxy: proxy
+                    })
+                });
+                // Optionally update UI/logs here
+            }
+            document.getElementById('add-proxy-modal').classList.add('hidden');
+            document.getElementById('add-proxy-modal').classList.remove('flex');
+        });
+
+        document.getElementById('cancel-proxy-btn').addEventListener('click', () => {
+            document.getElementById('add-proxy-modal').classList.add('hidden');
+            document.getElementById('add-proxy-modal').classList.remove('flex');
+        });
+
+        // Proxy testing functionality
+        document.getElementById('test-proxy-btn').addEventListener('click', async () => {
+            const proxy = document.getElementById('proxy-test-input').value;
+            if (!proxy) {
+                addLog('Please enter a proxy to test', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('proxy-test-result');
+            resultDiv.className = 'p-3 rounded-lg text-sm bg-blue-50 text-blue-700';
+            resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Testing proxy...';
+            resultDiv.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/test-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proxy })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    resultDiv.className = 'p-3 rounded-lg text-sm bg-green-50 text-green-700';
+                    resultDiv.innerHTML = `
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <strong>Proxy Working!</strong><br>
+                        IP: ${result.ip}<br>
+                        Response Time: ${result.response_time.toFixed(2)}s
+                    `;
+                    addLog(`Proxy test successful: ${result.ip}`, 'success');
+                } else {
+                    resultDiv.className = 'p-3 rounded-lg text-sm bg-red-50 text-red-700';
+                    resultDiv.innerHTML = `
+                        <i class="fas fa-times-circle mr-2"></i>
+                        <strong>Proxy Failed!</strong><br>
+                        ${result.message}
+                    `;
+                    addLog(`Proxy test failed: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.className = 'p-3 rounded-lg text-sm bg-red-50 text-red-700';
+                resultDiv.innerHTML = `
+                    <i class="fas fa-times-circle mr-2"></i>
+                    <strong>Test Error!</strong><br>
+                    ${error.message}
+                `;
+                addLog(`Proxy test error: ${error.message}`, 'error');
+            }
+        });
+
+        // Enhanced account deletion with database integration
+        async function removeAccount(index) {
+            const account = accounts[index];
+            if (confirm(`Remove account ${account.username}? This will also delete it from the database.`)) {
+                try {
+                    const response = await fetch(`/api/accounts/${account.username}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        accounts.splice(index, 1);
+                        renderAccounts();
+                        renderAccountStatus();
+                        addLog(`Account ${account.username} removed successfully`, 'success');
+                    } else {
+                        const result = await response.json();
+                        addLog(`Error removing account: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    addLog(`Error removing account: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // Enhanced analytics polling
+        function startAnalyticsPolling() {
+            setInterval(async () => {
+                try {
+                    const response = await fetch('/api/analytics');
+                    const analytics = await response.json();
+
+                    if (analytics.error) {
+                        console.error('Analytics error:', analytics.error);
+                        return;
+                    }
+
+                    // Update stats with real-time data
+                    stats = {
+                        totalSent: analytics.total_sent || 0,
+                        successful: analytics.successful || 0,
+                        failed: analytics.failed || 0,
+                        remaining: analytics.remaining || 0
+                    };
+
+                    updateStats();
+
+                    // Update campaign statistics if available
+                    if (analytics.campaign_stats) {
+                        updateCampaignStats(analytics.campaign_stats);
+                    }
+
+                } catch (error) {
+                    console.error('Error polling analytics:', error);
+                }
+            }, 5000); // Poll every 5 seconds
+        }
+
+        function updateCampaignStats(campaignStats) {
+            // Update campaign-specific statistics
+            const statsContainer = document.querySelector('.stats-grid');
+            if (statsContainer && campaignStats) {
+                // Add campaign stats to the UI if needed
+                console.log('Campaign stats updated:', campaignStats);
+            }
+        }
+
+        // Initialize enhanced polling
+        startAnalyticsPolling();
+    </script>
+</body>
+
+</html>

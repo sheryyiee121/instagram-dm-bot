@@ -1,0 +1,7 @@
+{
+  "total_dms": 100,
+  "dms_per_account": 25,
+  "delay_between_dms": 20,
+  "delay_between_accounts": 2,
+  "use_browser_mode": true
+}

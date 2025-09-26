@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram DM Sender</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            animation: fadeIn 1s ease-in-out;
+        }
+        .dm-container {
+            display: none;
+            flex-direction: column;
+        }
+        .log-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            max-height: 300px;
+            background: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+        .log-message {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            background: #e2e8f0;
+            animation: slideIn 0.3s ease-in;
+        }
+        .settings-container {
+            display: none;
+            padding: 1rem;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .btn {
+            transition: transform 0.2s, background-color 0.3s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            background-color: #3b82f6;
+        }
+        .error {
+            color: #ef4444;
+            text-align: center;
+            animation: shake 0.3s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        textarea, input[type="text"], input[type="password"], input[type="number"] {
+            transition: border-color 0.3s;
+        }
+        textarea:focus, input:focus {
+            border-color: #0095f6;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login Section -->
+        <div id="login-section" {% if username %}style="display: none;"{% endif %}>
+            <h2 class="text-2xl font-bold text-center mb-4">Instagram DM Sender</h2>
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
+            <form id="login-form" method="POST" action="/login">
+                <input type="text" name="username" placeholder="Instagram Username" class="w-full p-2 mb-4 border rounded" required>
+                <input type="password" name="password" placeholder="Password" class="w-full p-2 mb-4 border rounded" required>
+                <button type="submit" class="btn w-full bg-blue-500 text-white p-2 rounded">Login</button>
+            </form>
+        </div>
+
+        <!-- DM Sender Section -->
+        <div id="dm-section" class="dm-container" {% if not username %}style="display: none;"{% endif %}>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">DM Sender ({{ username }})</h2>
+                <div>
+                    <button id="settings-btn" class="btn bg-gray-300 text-black p-2 rounded mr-2">Settings</button>
+                    <a href="/logout" class="btn bg-red-500 text-white p-2 rounded">Logout</a>
+                </div>
+            </div>
+            <form id="dm-form">
+                <textarea id="usernames" placeholder="Enter usernames (one per line) or upload a file" class="w-full p-2 mb-4 border rounded" rows="4"></textarea>
+                <input type="file" id="username-file" accept=".txt" class="mb-4">
+                <textarea id="message" placeholder="Enter DM message" class="w-full p-2 mb-4 border rounded" required></textarea>
+                <button type="submit" id="send-dm-btn" class="btn w-full bg-blue-500 text-white p-2 rounded">Start Sending DMs</button>
+            </form>
+            <div id="log-area" class="log-area"></div>
+        </div>
+
+        <!-- Settings Section -->
+        <div id="settings-section" class="settings-container">
+            <h2 class="text-xl font-bold mb-4">DM Settings</h2>
+            <form id="settings-form">
+                <label class="block mb-2">Total DMs Allowed:</label>
+                <input type="number" id="total-dms" name="total_dms" value="{{ dm_settings.total_dms }}" class="w-full p-2 mb-4 border rounded" min="1">
+                <label class="block mb-2">DMs Per Account:</label>
+                <input type="number" id="dms-per-account" name="dms_per_account" value="{{ dm_settings.dms_per_account }}" class="w-full p-2 mb-4 border rounded" min="1">
+                <button type="submit" class="btn w-full bg-green-500 text-white p-2 rounded">Save Settings</button>
+            </form>
+            <button id="back-btn" class="btn w-full bg-gray-300 text-black p-2 rounded mt-4">Back to DM Sender</button>
+        </div>
+    </div>
+
+    <script>
+        // Show DM section if logged in
+        {% if username %}
+            document.getElementById('dm-section').style.display = 'flex';
+        {% endif %}
+
+        // Handle settings form submission
+        document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const totalDms = document.getElementById('total-dms').value;
+            const dmsPerAccount = document.getElementById('dms-per-account').value;
+
+            const formData = new FormData();
+            formData.append('total_dms', totalDms);
+            formData.append('dms_per_account', dmsPerAccount);
+
+            const response = await fetch('/update_settings', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Settings updated!');
+                showDMSection();
+            } else {
+                alert('Error updating settings.');
+            }
+        });
+
+        // Handle file upload for usernames
+        document.getElementById('username-file')?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    document.getElementById('usernames').value = event.target.result;
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Handle DM form submission
+        let isSending = false;
+        document.getElementById('dm-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (isSending) {
+                isSending = false;
+                document.getElementById('send-dm-btn').textContent = 'Start Sending DMs';
+                return;
+            }
+
+            const usernames = document.getElementById('usernames').value.split('\n').map(u => u.trim()).filter(u => u);
+            const message = document.getElementById('message').value.trim();
+            const logArea = document.getElementById('log-area');
+            const totalDms = {{ dm_settings.total_dms }};
+            const dmsPerAccount = {{ dm_settings.dms_per_account }};
+            let sentCount = 0;
+
+            if (!usernames.length || !message) {
+                logArea.innerHTML += `<div class="log-message error">Please provide usernames and a message.</div>`;
+                return;
+            }
+
+            isSending = true;
+            document.getElementById('send-dm-btn').textContent = 'Stop Sending DMs';
+
+            for (const username of usernames) {
+                if (!isSending || sentCount >= totalDms) {
+                    logArea.innerHTML += `<div class="log-message">Stopped sending DMs.</div>`;
+                    break;
+                }
+
+                const userSentCount = Math.floor(sentCount / usernames.length) + 1;
+                if (userSentCount > dmsPerAccount) {
+                    logArea.innerHTML += `<div class="log-message error">DM limit per account (${dmsPerAccount}) reached for ${username}.</div>`;
+                    continue;
+                }
+
+                logArea.innerHTML += `<div class="log-message">Sending DM to ${username}: "${message}"</div>`;
+                sentCount++;
+                logArea.scrollTop = logArea.scrollHeight;
+
+                // Simulate 6-second delay
+                await new Promise(resolve => setTimeout(resolve, 6000));
+            }
+
+            if (sentCount >= totalDms) {
+                logArea.innerHTML += `<div class="log-message error">Total DM limit (${totalDms}) reached.</div>`;
+            }
+
+            isSending = false;
+            document.getElementById('send-dm-btn').textContent = 'Start Sending DMs';
+        });
+
+        // Toggle settings view
+        document.getElementById('settings-btn')?.addEventListener('click', () => {
+            document.getElementById('dm-section').style.display = 'none';
+            document.getElementById('settings-section').style.display = 'block';
+        });
+
+        // Back to DM sender
+        document.getElementById('back-btn')?.addEventListener('click', showDMSection);
+
+        function showDMSection() {
+            document.getElementById('settings-section').style.display = 'none';
+            document.getElementById('dm-section').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
